@@ -66,6 +66,8 @@ NON_NETWORK_HOSTS: dict[str, str] = {
     "www.camera.it": "link scheda atto (resolver URN) emesso per l'utente — mai richiesto dal server",
     "docs.oasis-open.org": "namespace Akoma Ntoso citato in un docstring",
     "www.esempio.it": "dominio segnaposto negli esempi dei docstring",
+    "www.regione.abruzzo.it": "link al repertorio leggi Abruzzo mostrato, non interrogato automaticamente",
+    "bura.regione.abruzzo.it": "link al BURAT mostrato a scopo di verifica, non interrogato automaticamente",
 }
 
 
