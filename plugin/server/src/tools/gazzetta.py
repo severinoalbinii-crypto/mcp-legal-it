@@ -454,78 +454,137 @@ def _abruzzo_article(text: str, number: str) -> str | None:
     return None
 
 
+
+from urllib.parse import urlsplit as _abruzzo_urlsplit
+import httpx as _abruzzo_httpx
+from bs4 import BeautifulSoup as _abruzzo_bs4
+from src.lib._http import retry_request as _abruzzo_request
+
+_ABRUZZO_MFR = "https://www.normattiva.it/mfr/"
+_ABRUZZO_MFR_SEARCH = "https://www.normattiva.it/mfr/ricerca/semplice/1"
+
+
+def _parse_abruzzo_federated(html: str) -> list[dict[str, str]]:
+    """Parse regional law links only on the verified Abruzzo Council domains."""
+    soup = _abruzzo_bs4(html, "html.parser")
+    matches = []
+    seen = set()
+    for a in soup.select("a[href]"):
+        url = a.get("href", "").strip()
+        parts = _abruzzo_urlsplit(url)
+        host = (parts.hostname or "").lower()
+        if parts.scheme not in ("http", "https") or not (
+            host.endswith(".consiglio.regione.abruzzo.it")
+            or host == "consiglio.regione.abruzzo.it"
+            or host == "leggi.regione.abruzzo.it"
+        ):
+            continue
+        label = _abruzzo_re.sub(r"\s+", " ", a.get_text(" ", strip=True)).strip()
+        if not (
+            _abruzzo_re.search(r"\bABRUZZO\b", label, _abruzzo_re.I)
+            and _abruzzo_re.search(r"LEGGE\s+REGIONALE", label, _abruzzo_re.I)
+        ):
+            continue
+        match = _abruzzo_re.search(
+            r"LEGGE\s+REGIONALE\s+n\.?\s*(\d+)\s+del\s+"
+            r"(?:\d{1,2}\s+[\wàèìòù]+\s+)?(\d{4})",
+            label, _abruzzo_re.I
+        )
+        parent_text = a.parent.get_text(" ", strip=True) if a.parent else label
+        context = _abruzzo_re.sub(r"\s+", " ", parent_text).strip()
+        extra = context[len(label):].lstrip(" -:") if context.startswith(label) else ""
+        if url in seen:
+            continue
+        seen.add(url)
+        matches.append({
+            "numero": match.group(1) if match else "",
+            "anno": match.group(2) if match else "",
+            "descrizione": label[:600],
+            "titolo": extra[:350],
+            "stato": (
+                "VIGENTE secondo indice Normattiva Regioni"
+                if "TESTO VIGENTE" in label.upper()
+                else "Stato non verificato nell'indice"
+            ),
+            "url": url,
+        })
+    return matches
+
+
+async def _query_abruzzo_federated(parole: str, numero: str, anno: str) -> list[dict[str, str]]:
+    """POST to official Normattiva regional index; one request per search."""
+    async with _abruzzo_httpx.AsyncClient(
+        follow_redirects=True, timeout=_abruzzo_httpx.Timeout(25, connect=10),
+        headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "it-IT,it;q=0.9"},
+    ) as client:
+        landing = await _abruzzo_request(client, "GET", _ABRUZZO_MFR, dataset="normattiva")
+        soup = _abruzzo_bs4(landing.text, "html.parser")
+        form = soup.find("form", action=lambda a: bool(a and "/ricerca/semplice/" in a))
+        region = form.find("input", {"name": "regioneList", "id": "regioneList1"}) if form else None
+        types = form.find("input", {"name": "tipoLeggeList"}) if form else None
+        if region is None or region.get("value") != "1" or types is None:
+            raise RuntimeError("Il filtro Abruzzo nel portale Normattiva e' cambiato")
+        payload = {
+            "numeroProvvedimento": numero, "giornoProvvedimento": "",
+            "meseProvvedimento": "", "annoProvvedimento": anno,
+            "tipoLeggeList": types.get("value", ""),
+            "containsType": "ALL_WORDS", "ricerca": parole,
+            "regioneList": "1", "_regioneList": "on",
+        }
+        reply = await _abruzzo_request(
+            client, "POST", _ABRUZZO_MFR_SEARCH, dataset="normattiva", data=payload
+        )
+        return _parse_abruzzo_federated(reply.text)
+
+
 async def _cerca_leggi_regione_abruzzo_impl(
-    parole: str = "",
-    numero: str = "",
-    anno_da: str = "",
-    anno_a: str = "",
+    parole: str = "", numero: str = "", anno_da: str = "", anno_a: str = "",
     max_risultati: int = 20,
 ) -> SearchResult:
-    """Search Gazzetta Regione (publication index, not regional current-law archive)."""
-    if not (parole.strip() or numero.strip() or anno_da.strip() or anno_a.strip()):
-        return SearchResult(
-            success=False, source=_SOURCE, error_type="bad_input",
-            results_text="Inserire parole nel titolo, numero della legge o anno di pubblicazione.",
-        )
+    """Look up Abruzzo legislation in Normattiva's official federated index."""
+    source = "normattiva_regioni"
+    if not any(x.strip() for x in (parole, numero, anno_da, anno_a)):
+        return SearchResult(success=False, source=source, error_type="bad_input",
+                            results_text="Specificare parole, numero o anno della legge.")
     if (numero and not numero.isdigit()) or any(
         y and not _abruzzo_re.fullmatch(r"\d{4}", y) for y in (anno_da, anno_a)
     ):
-        return SearchResult(
-            success=False, source=_SOURCE, error_type="bad_input",
-            results_text="Numero di legge numerico e anni in formato AAAA.",
-        )
-    if anno_da and anno_a and anno_da > anno_a:
-        return SearchResult(
-            success=False, source=_SOURCE, error_type="bad_input",
-            results_text="L'anno iniziale e' successivo all'anno finale.",
-        )
-    limit = max(1, min(max_risultati, 30))
+        return SearchResult(success=False, source=source, error_type="bad_input",
+                            results_text="Numero numerico e anno nel formato AAAA.")
+    if anno_da and anno_a and anno_da != anno_a:
+        return SearchResult(success=False, source=source, error_type="bad_input",
+                            results_text="La ricerca federata accetta un solo anno alla volta.")
     try:
-        total, docs = await search_atti(
-            "regioni",
-            titolo=parole.strip(),
-            numero_provvedimento=numero.strip(),
-            descrizione_tipo_provvedimento="LEGGE REGIONALE",
-            descrizione_emettitore="REGIONE ABRUZZO",
-            anno_da=anno_da.strip(), anno_a=anno_a.strip(), rows=limit,
-        )
+        matches = await _query_abruzzo_federated(parole.strip(), numero.strip(), anno_da or anno_a)
     except Exception as exc:
-        return SearchResult(
-            success=False, source=_SOURCE, error_type="source_down",
-            error_message=str(exc),
-        )
-
-    # A search result without issuer cannot establish the Region and is omitted.
-    verified = [
-        doc for doc in docs
-        if "ABRUZZO" in (doc.emettitore or "").upper().replace("_", " ")
-        and ("LEGGE" in (doc.tipo or "").upper() or "LEGGE REGIONALE" in (doc.title or "").upper())
-    ]
-    if not verified:
-        return SearchResult(
-            success=False, source=_SOURCE, error_type="no_results",
-            results_text=(
-                "Nessuna legge abruzzese identificabile nei risultati della ricerca GU. "
-                "Questo NON significa che la legge non esista: la serie speciale "
-                "e' pubblicata con ritardo e il motore di ricerca puo' non indicizzare "
-                "o non identificare l'emettitore."
-                + _ABRUZZO_OFFICIAL_SOURCES
-            ),
-        )
-
+        return SearchResult(success=False, source=source, error_type="source_down",
+                            error_message=str(exc))
+    if not matches:
+        return SearchResult(success=False, source=source, error_type="no_results",
+                            results_text=(
+                                "Nessun risultato verificabile nell'indice: NON prova "
+                                "che la legge non esista." + _ABRUZZO_OFFICIAL_SOURCES
+                            ))
+    limit = max(1, min(max_risultati, 30))
     lines = [
-        f"## Regione Abruzzo: {len(verified)} risultati identificati nella GU "
-        f"3a Serie speciale (candidati della ricerca: {total})",
-        "**Avvertenza**: gli anni filtrano la *pubblicazione in GU*, non l'anno della legge. "
-        "Risultati parziali, non catalogo completo e non testo coordinato vigente.",
+        f"## Regione Abruzzo: {len(matches)} riferimenti identificati nel portale Normattiva Regioni",
+        "Fonte ufficiale di indicizzazione: https://www.normattiva.it/mfr/",
+        "Anno = anno della legge; gli atti elencati rinviano al Consiglio regionale. "
+        "La dicitura vigente riportata dal catalogo NON equivale a verifica "
+        "autonoma di ogni modifica o abrogazione.",
     ]
-    for doc in verified:
-        lines.extend(("", format_result(doc)))
+    for result in matches[:limit]:
+        lines += [
+            "", f"**L.R. Abruzzo {result['numero'] or '?'}"
+                f"/{result['anno'] or '?'}** — {result['stato']}",
+            result["titolo"] or result["descrizione"],
+            f"Testo sul sito regionale: {result['url']}",
+        ]
+    if len(matches) > limit:
+        lines.append(f"Mostrati {limit} riferimenti della prima pagina; affinare la ricerca.")
     lines.append(_ABRUZZO_OFFICIAL_SOURCES)
-    return SearchResult(
-        success=True, source=_SOURCE, num_found=len(verified),
-        results_text="\n".join(lines),
-    )
+    return SearchResult(success=True, source=source, num_found=len(matches),
+                        results_text="\n".join(lines))
 
 
 async def _leggi_legge_regione_abruzzo_impl(
