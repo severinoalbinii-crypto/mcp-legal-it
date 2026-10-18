@@ -22,7 +22,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "cerca_giurisprudenza_cgue": ("cgue",),
     "cerca_giurisprudenza_tributaria": ("cerdef",),
     "cerca_giurisprudenza_unificata": ("cerdef", "cgue", "giustizia_amm", "italgiure"),
-    "cerca_leggi_regione_abruzzo": ("gazzetta",),
+    "cerca_leggi_regione_abruzzo": ("normattiva",),
     "cerca_marchi": ("tmview",),
     "cerca_pronuncia_costituzionale": ("corte_cost",),
     "cerca_provvedimenti_garante": ("gpdp",),
