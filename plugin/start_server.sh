@@ -55,7 +55,7 @@ if [ "${MCP_FORCE_VENV:-0}" != "1" ]; then
 fi
 if [ -n "$UV" ]; then
   exec "$UV" run --python 3.12 \
-    --with "fastmcp>=2.0,<4" --with "httpx>=0.27" --with "beautifulsoup4>=4.12" \
+    --with "fastmcp>=2.0,<4" --with "httpx>=0.27" --with "beautifulsoup4>=4.12" --with "pypdf>=5.0,<7" \
     --with "lxml>=5.0" --with "fpdf2>=2.7" --with "python-docx>=1.0" --with "openpyxl>=3.1" \
     --with "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'" \
     "$SERVER/run_server.py"
@@ -96,7 +96,7 @@ fi
 venv_is_usable() {
   [ -x "$VENV/bin/python" ] || return 1
   "$VENV/bin/python" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1 || return 1
-  "$VENV/bin/python" -c 'import fastmcp, httpx, bs4, lxml, fpdf, docx, openpyxl' >/dev/null 2>&1 || return 1
+  "$VENV/bin/python" -c 'import fastmcp, httpx, bs4, lxml, fpdf, docx, openpyxl, pypdf' >/dev/null 2>&1 || return 1
   return 0
 }
 
@@ -104,7 +104,7 @@ if ! venv_is_usable; then
   rm -rf "$VENV"
   "$PYTHON" -m venv "$VENV"
   "$VENV/bin/pip" install -q --disable-pip-version-check \
-    "fastmcp>=2.0,<4" "httpx>=0.27" "beautifulsoup4>=4.12" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0" "openpyxl>=3.1" \
+    "fastmcp>=2.0,<4" "httpx>=0.27" "beautifulsoup4>=4.12" "pypdf>=5.0,<7" "lxml>=5.0" "fpdf2>=2.7" "python-docx>=1.0" "openpyxl>=3.1" \
     "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'"
 fi
 

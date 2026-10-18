@@ -23,6 +23,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - UTILITÀ: codice fiscale, IBAN, scorporo IVA, patente, alcolemico, ATECO
 - NORMATIVA: cite_law() per testo vigente, Brocardi per dottrina, PDF norme
 - VERIFICA CITAZIONI: verifica_citazioni() controlla esistenza e metadati di un elenco di norme e sentenze citate (NON verifica il merito)
+- LEGGI REGIONE ABRUZZO: cerca_leggi_regione_abruzzo, leggi_legge_regione_abruzzo, verifica_modifiche_legge_abruzzo — fonte BURAT, indice non esaustivo e testi non necessariamente coordinati.
 - GAZZETTA UFFICIALE: cerca_gazzetta_ufficiale, leggi_atto_gazzetta, sommario_gazzetta, ultime_gazzette, scarica_pdf_gazzetta — atti pubblicati in GU (leggi, decreti, ELI)
 - DDL E ITER PARLAMENTARE: cerca_ddl, iter_ddl, ddl_su_norma — disegni di legge pendenti, navette Senato/Camera, riforme in corso (dati.senato.it + dati.camera.it; ddl_su_norma cerca solo nei TITOLI, best-effort dichiarato)
 - GIURISPRUDENZA: sentenze Cassazione (Italgiure, archivio 2020+). Strategia: esplora → filtra → leggi
@@ -95,6 +96,7 @@ from src.tools import (  # noqa: E402, F401
     procedura_civile,
     corte_cost,
     gazzetta,
+    abruzzo,
     parlamento,
     orientamento,
     eu_implementation,

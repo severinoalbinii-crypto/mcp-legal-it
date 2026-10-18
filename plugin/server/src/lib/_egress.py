@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 #: Hosts the running server may contact, mapped to who operates them.
 ALLOWED_HOSTS: dict[str, str] = {
     # --- Italian State: legislation ---
+    "bura.regione.abruzzo.it": "BURAT — Bollettino ufficiale Regione Abruzzo",
     "www.normattiva.it": "Normattiva — Istituto Poligrafico e Zecca dello Stato",
     "www.gazzettaufficiale.it": "Gazzetta Ufficiale — IPZS",
     # --- Italian State: case law ---
