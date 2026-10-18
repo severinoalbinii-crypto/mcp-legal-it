@@ -61,7 +61,7 @@ def configure_remote_auth():
     from fastmcp.server.auth.providers.github import GitHubProvider
     from fastmcp.server.middleware import Middleware, MiddlewareContext
     from fastmcp.server.dependencies import get_access_token
-    from fastmcp.exceptions import ToolError, ResourceError, PromptError
+    from fastmcp.exceptions import ToolError, ResourceError, PromptError, McpError
 
     provider = GitHubProvider(
         client_id=values["GITHUB_CLIENT_ID"],
@@ -71,7 +71,12 @@ def configure_remote_auth():
     )
 
     class AllowedGitHubUsers(Middleware):
-        """Deny tool, resource and prompt operations unless GitHub login is allowed."""
+        """Restrict every MCP request to the configured GitHub accounts."""
+
+        async def on_request(self, context: MiddlewareContext, call_next):
+            if not self._authorized():
+                raise McpError(code=-32000, message="GitHub account is not authorized")
+            return await call_next(context)
 
         @staticmethod
         def _authorized():
