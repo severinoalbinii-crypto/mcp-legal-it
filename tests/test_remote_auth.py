@@ -95,3 +95,19 @@ def test_unsupported_transport_refuses(monkeypatch, transport):
     monkeypatch.setenv("MCP_TRANSPORT", transport)
     with pytest.raises(ValueError, match="Unsupported MCP_TRANSPORT"):
         configure_remote_auth()
+
+def test_live_provider_integration_smoke(oauth_env):
+    """Create the actual GitHubProvider and register the middleware in FastMCP.
+
+    This catches configuration/API mismatches hidden by the mocked allowlist tests.
+    It does not authenticate against GitHub or perform external requests.
+    """
+    from fastmcp import FastMCP
+    from fastmcp.server.auth.providers.github import GitHubProvider
+
+    provider, middlewares = configure_remote_auth()
+    assert isinstance(provider, GitHubProvider)
+    mcp = FastMCP("OAuth smoke test", auth=provider)
+    for middleware in middlewares:
+        mcp.add_middleware(middleware)
+    assert mcp is not None
