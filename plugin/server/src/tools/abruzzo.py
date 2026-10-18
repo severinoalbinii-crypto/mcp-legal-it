@@ -25,8 +25,8 @@ MAX_PDF_BYTES = 15 * 1024 * 1024
 MAX_PAGES = 150
 MAX_TEXT_CHUNK = 18000
 MAX_BULLETINS = 10
-LAW_HEAD = re.compile(r"\\blegge\\s+regionale\\b", re.I)
-LAW_NUMBER = re.compile(r"\\bn\\s*[.°]?\\s*(\\d+)\\b", re.I)
+LAW_HEAD = re.compile(r"\blegge\s+regionale\b", re.I)
+LAW_NUMBER = re.compile(r"\bn\s*[.°]?\s*(\d+)\b", re.I)
 
 
 def _safe_url(href: str, *, allow_search: bool = False) -> str | None:
@@ -177,8 +177,8 @@ async def cerca_leggi_regione_abruzzo(
         esito="risultati" if acts else "nessuna_legge_identificata_nel_campione",
         fonte_ufficiale=BASE,
         ricerca=_search_url(terms),
-        leggi=acts[:max_risultati],
-        bollettini_da_verificare=hits["bollettini"][:max_risultati],
+        leggi=acts[:max(1, min(max_risultati, 10))],
+        bollettini_da_verificare=hits["bollettini"][:max(1, min(max_risultati, 10))],
         errori_dettaglio=hits["errori_dettaglio"],
         avvertenza="L'indice BURAT e il campione di bollettini non garantiscono esaustività o testo vigente; verificare tutte le modifiche pubblicate.",
     )
