@@ -31,6 +31,8 @@
         "--with",
         "beautifulsoup4>=4.12",
         "--with",
+        "pypdf>=5.0,<7",
+        "--with",
         "lxml>=5.0",
         "--with",
         "fpdf2>=2.7",
