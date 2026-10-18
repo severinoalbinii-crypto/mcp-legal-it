@@ -55,7 +55,7 @@ if [ "${MCP_FORCE_VENV:-0}" != "1" ]; then
 fi
 if [ -n "$UV" ]; then
   exec "$UV" run --python 3.12 \
-    --with "fastmcp>=2.0,<4" --with "httpx>=0.27" --with "beautifulsoup4>=4.12" \
+    --with "fastmcp>=2.0,<4" --with "httpx>=0.27" --with "beautifulsoup4>=4.12" "pypdf>=5.0,<7" --with "pypdf>=5.0,<7" \
     --with "lxml>=5.0" --with "fpdf2>=2.7" --with "python-docx>=1.0" --with "openpyxl>=3.1" \
     --with "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'" \
     "$SERVER/run_server.py"
