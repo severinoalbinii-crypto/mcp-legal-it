@@ -29,3 +29,11 @@ Se manca una variabile necessaria, il processo remoto si rifiuta di partire: non
 7. Disattivare/eliminare eventuali servizi Render pubblici rimasti senza autenticazione.
 
 **Nota**: il piano Free di Render puo sospendere/riavviare il processo; occorre verificare il comportamento di sessioni, stato OAuth e storage FastMCP dopo riavvii. Non caricare fascicoli professionali riservati prima del collaudo di sicurezza.
+
+## Controlli prima di autorizzare il merge
+
+- La CI GitHub deve risultare completata con successo sul ramo di questa Pull Request.
+- Oltre ai test unitari, provare il collegamento OAuth da ChatGPT a un servizio di staging (non al server gia in uso).
+- Non interpretare `stato_server` ottenuto con la precedente connessione **senza autenticazione** come verifica dell'accesso protetto.
+- Controllare che ogni richiesta MCP non autenticata e ogni account GitHub non presente nell'allowlist venga rifiutato.
+- Non trasmettere dati dei clienti fino al completamento delle prove e alla dismissione dell'endpoint non protetto.
