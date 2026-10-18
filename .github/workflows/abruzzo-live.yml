@@ -1,0 +1,40 @@
+name: Abruzzo live public-source smoke
+
+on:
+  pull_request:
+    branches:
+      - security/github-oauth-render-20261018
+    paths:
+      - ".github/workflows/abruzzo-live.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e .
+      - name: Test actual Abruzzo law in Normattiva index and Gazzetta
+        run: |
+          python - <<'PY'
+          import asyncio
+          from src.tools.gazzetta import (
+              _cerca_leggi_regione_abruzzo_impl,
+              _leggi_legge_regione_abruzzo_impl,
+          )
+          async def test():
+              found = await _cerca_leggi_regione_abruzzo_impl(numero="58", anno_da="2023")
+              assert found.success, found.to_str()
+              assert "58/2023" in found.results_text, found.to_str()
+              print("Normattiva regional law 58/2023: OK")
+              text = await _leggi_legge_regione_abruzzo_impl("24R00001", "2024-09-21", articolo="1")
+              assert text.success, text.to_str()
+              assert "Vigenza NON verificata" in text.results_text
+              print("Gazzetta Ufficiale Abruzzo art. 1: OK")
+          asyncio.run(test())
+          PY
