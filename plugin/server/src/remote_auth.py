@@ -59,7 +59,9 @@ def configure_remote_auth():
         raise RuntimeError("MCP_ALLOWED_GITHUB_USERS must name at least one account.")
 
     from fastmcp.server.auth.providers.github import GitHubProvider
-    from fastmcp.server.middleware import AuthMiddleware
+    from fastmcp.server.middleware import Middleware, MiddlewareContext
+    from fastmcp.server.dependencies import get_access_token
+    from fastmcp.exceptions import ToolError, ResourceError, PromptError
 
     provider = GitHubProvider(
         client_id=values["GITHUB_CLIENT_ID"],
@@ -68,11 +70,28 @@ def configure_remote_auth():
         redirect_path="/auth/callback",
     )
 
-    def allow_github_login(ctx):
-        token = ctx.token
-        if token is None:
-            return False
-        login = token.claims.get("login")
-        return isinstance(login, str) and login.casefold() in allowed
+    class AllowedGitHubUsers(Middleware):
+        """Deny tool, resource and prompt operations unless GitHub login is allowed."""
 
-    return provider, [AuthMiddleware(auth=allow_github_login)]
+        @staticmethod
+        def _authorized():
+            token = get_access_token()
+            login = token.claims.get("login") if token is not None else None
+            return isinstance(login, str) and login.casefold() in allowed
+
+        async def on_call_tool(self, context: MiddlewareContext, call_next):
+            if not self._authorized():
+                raise ToolError("GitHub account is not authorized")
+            return await call_next(context)
+
+        async def on_read_resource(self, context: MiddlewareContext, call_next):
+            if not self._authorized():
+                raise ResourceError("GitHub account is not authorized")
+            return await call_next(context)
+
+        async def on_get_prompt(self, context: MiddlewareContext, call_next):
+            if not self._authorized():
+                raise PromptError("GitHub account is not authorized")
+            return await call_next(context)
+
+    return provider, [AllowedGitHubUsers()]
