@@ -32,50 +32,67 @@ ORIGINAL = (
 )
 
 
+def test_federated_parser_filters_unrelated_regions_and_unsafe_links():
+    html = """
+    <a href="http://www2.consiglio.regione.abruzzo.it/leggi_tv/testi_vigenti/insieme.asp?numero=58">
+       ABRUZZO - LEGGE REGIONALE n. 58 del 20 dicembre 2023 - TESTO VIGENTE
+    </a>
+    <a href="http://other.example/laws">ABRUZZO - LEGGE REGIONALE n. 1 del 2023</a>
+    <a href="http://www2.consiglio.regione.abruzzo.it/leggi_tv/other">
+       MARCHE - LEGGE REGIONALE n. 3 del 2023
+    </a>
+    """
+    result = gazzetta._parse_abruzzo_federated(html)
+    assert len(result) == 1
+    assert result[0]["numero"] == "58"
+    assert result[0]["anno"] == "2023"
+    assert "VIGENTE" in result[0]["stato"]
+
+
 @pytest.mark.asyncio
-async def test_search_abruzzo_filters_other_regions(monkeypatch):
-    calls = []
+async def test_search_uses_federated_law_metadata(monkeypatch):
+    seen = []
 
-    async def fake_search(serie, **kwargs):
-        calls.append((serie, kwargs))
-        return 2, [
-            FakeResult(),
-            FakeResult(codice_redazionale="24R99999", emettitore="REGIONE MARCHE"),
-        ]
+    async def fake_search(parole, numero, anno):
+        seen.append((parole, numero, anno))
+        return [{
+            "numero": "58", "anno": "2023",
+            "titolo": "Nuova legge urbanistica sul governo del territorio",
+            "descrizione": "ABRUZZO - LEGGE REGIONALE n. 58",
+            "stato": "VIGENTE secondo indice Normattiva Regioni",
+            "url": "http://www2.consiglio.regione.abruzzo.it/leggi_tv/testi_vigenti/insieme.asp?numero=58",
+        }]
 
-    monkeypatch.setattr(gazzetta, "search_atti", fake_search)
+    monkeypatch.setattr(gazzetta, "_query_abruzzo_federated", fake_search)
     result = await gazzetta._cerca_leggi_regione_abruzzo_impl(
-        parole="urbanistica", anno_da="2024", max_risultati=20,
+        parole="urbanistica", numero="58", anno_da="2023", anno_a="2023"
     )
     assert result.success
-    assert result.num_found == 1
-    assert calls[0][0] == "regioni"
-    assert calls[0][1]["descrizione_emettitore"] == "REGIONE ABRUZZO"
-    assert "24R00001" in result.results_text
-    assert "24R99999" not in result.results_text
-    assert "non testo coordinato vigente" in result.results_text
+    assert "58/2023" in result.results_text
+    assert "Normattiva" in result.results_text
+    assert seen == [("urbanistica", "58", "2023")]
 
 
 @pytest.mark.asyncio
-async def test_search_empty_is_not_claim_of_absence(monkeypatch):
-    async def fake_search(*args, **kwargs):
-        return 0, []
+async def test_search_empty_does_not_claim_absence(monkeypatch):
+    async def fake_search(*args):
+        return []
 
-    monkeypatch.setattr(gazzetta, "search_atti", fake_search)
-    res = await gazzetta._cerca_leggi_regione_abruzzo_impl(numero="58")
-    assert not res.success
-    assert "NON significa" in res.results_text
+    monkeypatch.setattr(gazzetta, "_query_abruzzo_federated", fake_search)
+    result = await gazzetta._cerca_leggi_regione_abruzzo_impl(numero="58")
+    assert not result.success
+    assert "NON prova" in result.results_text
 
 
 @pytest.mark.asyncio
 async def test_search_invalid_inputs_do_not_network(monkeypatch):
-    async def fail(*args, **kwargs):
+    async def fail(*args):
         raise AssertionError("Must not perform a network request")
 
-    monkeypatch.setattr(gazzetta, "search_atti", fail)
-    for opts in ({}, {"numero": "abc"}, {"anno_da": "20242025"}):
-        res = await gazzetta._cerca_leggi_regione_abruzzo_impl(**opts)
-        assert not res.success
+    monkeypatch.setattr(gazzetta, "_query_abruzzo_federated", fail)
+    for opts in ({}, {"numero": "abc"}, {"anno_da": "20242025"}, {"anno_da": "2023", "anno_a": "2024"}):
+        result = await gazzetta._cerca_leggi_regione_abruzzo_impl(**opts)
+        assert not result.success
 
 
 @pytest.mark.asyncio
