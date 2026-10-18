@@ -687,13 +687,16 @@ async def cerca_leggi_regione_abruzzo(
     anno_a: str = "",
     max_risultati: int = 20,
 ) -> str:
-    """Cerca leggi della REGIONE ABRUZZO nella GU, 3a Serie speciale - Regioni.
+    """Cerca leggi della REGIONE ABRUZZO nel catalogo Normattiva Regioni.
 
-    Fonte ufficiale per il testo di pubblicazione. Filtro per numero, titolo e
-    anno di PUBBLICAZIONE in GU (non anno della legge). Un risultato vuoto non
-    prova l'inesistenza di una legge: la GU puo' pubblicarla mesi dopo il BURAT.
-    Per testi vigenti e abrogazioni consultare la banca dati regionale/BURAT.
-    Dopo la ricerca usare leggi_legge_regione_abruzzo(codice, data, articolo).
+    Ricerca per numero, parole e anno di promulgazione della legge (non per
+    data di pubblicazione in Gazzetta). Restituisce il collegamento al
+    Consiglio regionale e lo stato di vigenza indicato dal catalogo.
+    La dicitura VIGENTE non accerta autonomamente modifiche e abrogazioni.
+    Un risultato vuoto non dimostra che la legge non esista.
+    Per leggere il testo originario nella GU 3a Serie speciale, usare
+    leggi_legge_regione_abruzzo con il CODICE REDAZIONALE GU e la data di
+    pubblicazione GU (non restituiti necessariamente dalla ricerca federata).
     """
     result = await _cerca_leggi_regione_abruzzo_impl(
         parole, numero, anno_da, anno_a, max_risultati,
