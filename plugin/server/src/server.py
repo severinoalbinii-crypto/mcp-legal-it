@@ -5,10 +5,15 @@ import os
 from fastmcp import FastMCP
 
 from src.cli_version import package_version
+from src.remote_auth import configure_remote_auth
+
+_http_auth, _http_middleware = configure_remote_auth()
 
 mcp = FastMCP(
     "Legal IT",
     version=package_version(),
+    auth=_http_auth,
+    middleware=_http_middleware,
     instructions="""\
 Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chiede:
 - CALCOLI DANNI/SINISTRI: risarcimento, danno biologico, invalidità, ITT/ITP
