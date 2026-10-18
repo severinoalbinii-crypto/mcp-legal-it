@@ -3,9 +3,9 @@
 ## Strumenti MCP
 
 * cerca_leggi_regione_abruzzo(parole, numero, anno_da, anno_a, max_risultati)
-  cerca nella Gazzetta Ufficiale 3a Serie Speciale - Regioni, usando parametri
-  di ricerca specifici per Regione Abruzzo. Gli anni si riferiscono alla data
-  di pubblicazione nella GU, non necessariamente all'anno della legge.
+  ricerca nell'indice istituzionale Normattiva Regioni, che rimanda ai testi
+  della Regione Abruzzo. Gli anni si riferiscono all'anno della legge;
+  l'indice puo' riportare lo stato VIGENTE, da verificare con le fonti ufficiali.
   Un risultato vuoto NON dimostra che la legge regionale non esista.
 * leggi_legge_regione_abruzzo(codice_redazionale, data_pubblicazione,
   articolo, da_carattere) legge il testo pubblicato. Controlla gli indizi della
