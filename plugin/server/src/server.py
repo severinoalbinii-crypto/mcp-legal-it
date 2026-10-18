@@ -13,7 +13,6 @@ mcp = FastMCP(
     "Legal IT",
     version=package_version(),
     auth=_http_auth,
-    middleware=_http_middleware,
     instructions="""\
 Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chiede:
 - CALCOLI DANNI/SINISTRI: risarcimento, danno biologico, invalidità, ITT/ITP
@@ -107,6 +106,9 @@ from src.tools import (  # noqa: E402, F401
     analisi_fornitori,
     tmview,
 )
+
+for _auth_middleware in _http_middleware:
+    mcp.add_middleware(_auth_middleware)
 
 from src import prompts, resources  # noqa: E402, F401
 from src.lib._ledger import apply_table_ledger  # noqa: E402
