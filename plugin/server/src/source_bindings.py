@@ -13,6 +13,7 @@ Regenerate with `python scripts/audit_tool_annotations.py --write`.
 """
 
 TOOL_SOURCES: dict[str, tuple[str, ...]] = {
+    "cerca_leggi_regione_abruzzo": ("bura_abruzzo",),
     "cerca_brocardi": ("brocardi",),
     "cerca_ddl": ("parlamento_senato",),
     "cerca_delibere_consob": ("consob",),
@@ -41,6 +42,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "giurisprudenza_cgue_su_norma": ("cgue",),
     "giurisprudenza_su_norma": ("italgiure",),
     "iter_ddl": ("parlamento_camera", "parlamento_senato"),
+    "leggi_legge_regione_abruzzo": ("bura_abruzzo",),
     "leggi_atto_gazzetta": ("gazzetta",),
     "leggi_delibera_consob": ("consob",),
     "leggi_marchio": ("tmview",),
@@ -64,6 +66,7 @@ TOOL_SOURCES: dict[str, tuple[str, ...]] = {
     "ultimi_provvedimenti_amm": ("giustizia_amm",),
     "ultimi_provvedimenti_garante": ("gpdp",),
     "verifica_anteriorita_marchio": ("tmview",),
+    "verifica_modifiche_legge_abruzzo": ("bura_abruzzo",),
     "verifica_citazioni": ("eur_lex", "italgiure", "normattiva"),
     "verifica_dpa_fornitore": ("dpa_probe",),
     "verifica_partita_iva_vies": ("vies",),
